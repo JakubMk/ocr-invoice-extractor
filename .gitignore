@@ -1,0 +1,34 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# virtual env
+venv/
+.venv/
+.env
+
+# logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# system
+.DS_Store
+
+# data (VERY IMPORTANT)
+*.pdf
+*.png
+*.jpg
+
+# models
+models/
+
+# notebooki (opcjonalnie)
+*.ipynb_checkpoints
+jup_notebooks/
+output/
+
+# dataset
+dataset/
