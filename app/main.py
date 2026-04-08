@@ -6,14 +6,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from app.routers import invoices
 
-# logging.basicConfig(filename="ocr_app.log",
-#                         level=logging.DEBUG,
-#                         format="{asctime}:{lineno}:{funcName}:{message}",
-#                         style="{",
-#                         datefmt="%H:%M %d-%m-%Y",
-#                         force=True)
-
-# logger = logging.getLogger(__name__)
 logger = logging.getLogger("ocr_app")
 logger.setLevel(logging.DEBUG)
 

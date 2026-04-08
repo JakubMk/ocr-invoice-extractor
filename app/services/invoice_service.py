@@ -1,7 +1,7 @@
 import logging
 logger = logging.getLogger("ocr_app")
 
-from typing import BinaryIO, List
+from typing import BinaryIO, List, Tuple
 from io import BytesIO
 
 import numpy as np
@@ -13,7 +13,7 @@ from paddleocr import PaddleOCR
 from PIL import Image, ImageFilter
 from typing import Optional
 
-from app.schemas.invoice import InvoiceDataResponse
+from app.schemas.invoice import InvoiceDataResponse, TextExtractionResult
 
 load_dotenv()
 
@@ -25,6 +25,7 @@ client = OpenAI()
 
 async def validate_invoice_file(file: UploadFile = File(...)) -> UploadFile:
     if file.content_type not in ALLOWED_CONTENT_TYPES:
+        logger.warning("Unsupported file type: %s", file.content_type)
         raise HTTPException(status_code=415, detail="Unsupported file type. Only '.pdf', '.png', '.jpg' file types are supported.")
         
     content = await file.read()
@@ -77,32 +78,34 @@ def try_extract_text_from_pdf(file_stream: bytes) -> str:
 
     for page in doc: # iterate the document pages
         text = page.get_text(sort=True)
-        logger.debug(f"[PDF] located string length: {len(text)}")
         if text:
+            logger.debug(f"[PDF] Located string length: {len(text)}")
             pages_text.append(text)
 
     full_text = "\n".join(pages_text).strip()
-    logger.debug(f"First 500 chars: \n{full_text[:500]}")
+    logger.debug(f"[PDF] First 500 chars: \n{full_text[:500]}")
     return full_text
 
 
-def extract_text_from_pdf(file_stream: bytes) -> str:
+def extract_text_from_pdf(file_stream: bytes) -> TextExtractionResult:
     text = try_extract_text_from_pdf(file_stream)
 
     if text.strip():
-        logger.debug("[PDF] Using embedded text extraction.")
-        return text
+        logger.debug("[PDF] Used embedded text extraction.")
+        return TextExtractionResult(text=text, extraction_mode="pdf_text")
 
-    logger.debug("[PDF] Embedded text empty, switching to OCR fallback")
+    logger.debug("[PDF] Embedded text empty, switching to OCR fallback.")
 
     images = render_pdf_to_images(file_stream)
     text = run_ocr_on_pdf_pages(images)
 
     if text.strip():
-        logger.debug("[PDF] Using ocr extraction.")
-        return text
+        logger.debug("[PDF] Used OCR extraction.")
+        return TextExtractionResult(text=text, extraction_mode="pdf_ocr")
     
-    return ""
+    logger.debug("[PDF] No text extracted from PDF.")
+
+    return TextExtractionResult(text="", extraction_mode="pdf_ocr")
 
 
 def render_pdf_to_images(file_stream: bytes, dpi: int = 200) -> List[Image.Image]:
@@ -137,10 +140,17 @@ def run_ocr_on_pdf_pages(images: List[Image.Image]) -> str:
 
     return text
 
-def extract_text_from_file(file_bytes: bytes, content_type: Optional[str]) -> str:
+
+def extract_text_from_image(file_bytes: bytes) -> TextExtractionResult:
+    image = Image.open(BytesIO(file_bytes))
+    text = paddle_ocr(image)
+    return TextExtractionResult(text=text, extraction_mode="image_ocr")
+
+# =============================================================================================
+
+def extract_text_from_file(file_bytes: bytes, content_type: Optional[str]) -> TextExtractionResult:
     if content_type in {"image/png", "image/jpeg"}:
-        image = Image.open(BytesIO(file_bytes))
-        return paddle_ocr(image)
+        return extract_text_from_image(file_bytes)
     
     if content_type == "application/pdf":
         return extract_text_from_pdf(file_bytes)
