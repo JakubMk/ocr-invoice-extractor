@@ -17,7 +17,7 @@ venv/
 # system
 .DS_Store
 
-# data (VERY IMPORTANT)
+# data
 *.pdf
 *.png
 *.jpg
@@ -25,8 +25,9 @@ venv/
 # models
 models/
 
-# notebooki (opcjonalnie)
+# notebooks
 *.ipynb_checkpoints
+*.ipynb
 jup_notebooks/
 output/
 
