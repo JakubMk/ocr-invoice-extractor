@@ -19,6 +19,7 @@ class InvoiceStoredResponse(InvoiceDataResponse):
     extraction_mode: str
 
 class InvoiceDebugResponse(InvoiceDataResponse):
+    invoice_id: str
     filename: str
     content_type: str
     extracted_text: str
