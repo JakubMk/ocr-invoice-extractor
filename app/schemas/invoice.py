@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
 class TextExtractionResult(BaseModel):
@@ -7,7 +6,7 @@ class TextExtractionResult(BaseModel):
     extraction_mode: str
     
 class InvoiceDataResponse(BaseModel):
-    seller_name: Optional[str]
+    seller_name: str
     seller_address: str
     seller_nip: int
     total_amount: float

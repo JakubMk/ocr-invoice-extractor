@@ -1,5 +1,4 @@
 from uuid import uuid4
-from typing import Optional
 from app.schemas.invoice import InvoiceStoredResponse
 
 INVOICE_STORE: dict[str, InvoiceStoredResponse] = {}
@@ -9,9 +8,9 @@ def save_invoice_data(invoice: InvoiceStoredResponse) -> InvoiceStoredResponse:
     return invoice
 
 def create_and_save_invoice_data(
-        seller_name: Optional[str],
-        seller_address: str,
-        seller_nip: int,
+        seller_name: str | None,
+        seller_address: str | None,
+        seller_nip: str | None,
         total_amount: float,
         filename: str,
         content_type: str,
@@ -32,5 +31,5 @@ def create_and_save_invoice_data(
 
 def get_invoice_data(
         invoice_id: str
-        ) -> Optional[InvoiceStoredResponse]:
+        ) -> InvoiceStoredResponse | None:
     return INVOICE_STORE.get(invoice_id)

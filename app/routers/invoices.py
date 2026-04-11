@@ -16,9 +16,9 @@ from app.services.invoice_service import (
     validate_invoice_file,
 )
 
-from app.services.invoice_store import (
-    create_and_save_invoice_data,
-    get_invoice_data
+from app.services.invoice_repository import (
+    create_invoice_result,
+    get_invoice_result
 )
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
@@ -50,7 +50,7 @@ async def process_invoice(file: UploadFile = Depends(validate_invoice_file), deb
     if invoice_data is None:
         raise HTTPException(status_code=422, detail="Could not extract invoice data.")
 
-    stored_invoice = create_and_save_invoice_data(
+    stored_invoice = create_invoice_result(
         seller_name=invoice_data.seller_name,
         seller_address=invoice_data.seller_address,
         seller_nip=invoice_data.seller_nip,
@@ -76,8 +76,8 @@ async def process_invoice(file: UploadFile = Depends(validate_invoice_file), deb
     return stored_invoice
 
 @router.get("/{invoice_id}", response_model=InvoiceStoredResponse)
-async def get_invoice(invoice_id: str):
-    invoice = get_invoice_data(invoice_id)
+async def get_invoice(invoice_id: str | None):
+    invoice = get_invoice_result(invoice_id)
 
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found.")

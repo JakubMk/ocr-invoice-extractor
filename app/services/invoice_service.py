@@ -1,7 +1,7 @@
 import logging
 logger = logging.getLogger("ocr_app")
 
-from typing import BinaryIO, List, Tuple
+from typing import List
 from io import BytesIO
 
 import numpy as np
@@ -11,7 +11,6 @@ from fastapi import File, HTTPException, UploadFile
 from openai import OpenAI
 from paddleocr import PaddleOCR
 from PIL import Image, ImageFilter
-from typing import Optional
 
 from app.schemas.invoice import InvoiceDataResponse, TextExtractionResult
 
@@ -148,7 +147,7 @@ def extract_text_from_image(file_bytes: bytes) -> TextExtractionResult:
 
 # =============================================================================================
 
-def extract_text_from_file(file_bytes: bytes, content_type: Optional[str]) -> TextExtractionResult:
+def extract_text_from_file(file_bytes: bytes, content_type: str) -> TextExtractionResult:
     if content_type in {"image/png", "image/jpeg"}:
         return extract_text_from_image(file_bytes)
     
@@ -158,7 +157,7 @@ def extract_text_from_file(file_bytes: bytes, content_type: Optional[str]) -> Te
     raise ValueError(f"Unsupported content type: {content_type}")
 
 
-def extract_invoice_data(text: str) -> Optional[InvoiceDataResponse]:
+def extract_invoice_data(text: str) -> InvoiceDataResponse | None:
     prompt = f"""
 Wyciągnij następujące pola z tekstu faktury:
 - nazwa sprzedawcy
