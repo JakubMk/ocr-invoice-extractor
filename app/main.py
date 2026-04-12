@@ -39,7 +39,7 @@ app.include_router(invoices.router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.exception("Catastrophic failure.")
+    logger.exception("Catastrophic failure: %s", exc)
     return JSONResponse(
         status_code=500,
         content={"detail": "Unexpected server error."},

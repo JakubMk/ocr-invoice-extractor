@@ -6,10 +6,10 @@ class TextExtractionResult(BaseModel):
     extraction_mode: str
     
 class InvoiceDataResponse(BaseModel):
-    seller_name: str
-    seller_address: str
-    seller_nip: int
-    total_amount: float
+    seller_name: str | None = None
+    seller_address: str | None = None
+    seller_nip: str | None = None
+    total_amount: float | None = None
 
 class InvoiceStoredResponse(InvoiceDataResponse):
     invoice_id: str
@@ -23,4 +23,3 @@ class InvoiceDebugResponse(InvoiceDataResponse):
     content_type: str
     extracted_text: str
     extraction_mode: str
-    

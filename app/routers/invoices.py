@@ -2,29 +2,22 @@ import logging
 logger = logging.getLogger("ocr_app")
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from typing import Union
 
 from app.schemas.invoice import (
-    InvoiceDataResponse,
     InvoiceDebugResponse,
     InvoiceStoredResponse
 )
 
-from app.services.invoice_service import (
-    extract_invoice_data,
-    extract_text_from_file,
-    validate_invoice_file,
-)
-
-from app.services.invoice_repository import (
-    create_invoice_result,
-    get_invoice_result
-)
+from app.services.file_validation import validate_invoice_file
+from app.services.invoice_service import process_invoice_file, UnsupportedContentTypeError
+from app.services.llm_service import InvoiceParsingError
+from app.services.invoice_repository import create_invoice_result, get_invoice_result
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
-@router.post("/process", response_model=Union[InvoiceStoredResponse, InvoiceDebugResponse])
-async def process_invoice(file: UploadFile = Depends(validate_invoice_file), debug: bool = False):
+@router.post("/process", response_model=InvoiceStoredResponse | InvoiceDebugResponse)
+async def process_invoice(file: UploadFile = Depends(validate_invoice_file),
+                          debug: bool = False):
     # validate file type
     content = await file.read()
 
@@ -34,21 +27,15 @@ async def process_invoice(file: UploadFile = Depends(validate_invoice_file), deb
 
     # process file with ocr to extract text
     try:
-        extraction_result = extract_text_from_file(file_bytes=content, content_type=file.content_type)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        invoice_data, extraction_result = process_invoice_file(file_bytes=content,
+                                                          content_type=file.content_type)
+    except InvoiceParsingError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except UnsupportedContentTypeError as exc:
+        raise HTTPException(status_code=415, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Invoice processing failed.") from exc
     
-    text = extraction_result.text
-    extraction_mode = extraction_result.extraction_mode
-
-    if not text.strip():
-        raise HTTPException(status_code=400, detail="No text extracted from file.")
-    
-    # retrive information from the invoice
-    invoice_data = extract_invoice_data(text)
-
-    if invoice_data is None:
-        raise HTTPException(status_code=422, detail="Could not extract invoice data.")
 
     stored_invoice = create_invoice_result(
         seller_name=invoice_data.seller_name,
@@ -57,9 +44,10 @@ async def process_invoice(file: UploadFile = Depends(validate_invoice_file), deb
         total_amount=invoice_data.total_amount,
         filename=file.filename,
         content_type=file.content_type,
-        extraction_mode=extraction_mode
+        extraction_mode=extraction_result.extraction_mode
         )
 
+    
     if debug:
         return InvoiceDebugResponse(
             invoice_id=stored_invoice.invoice_id,
@@ -69,14 +57,14 @@ async def process_invoice(file: UploadFile = Depends(validate_invoice_file), deb
             total_amount=stored_invoice.total_amount,
             filename=stored_invoice.filename,
             content_type=stored_invoice.content_type,
-            extracted_text=text,
+            extracted_text=extraction_result.text,
             extraction_mode=stored_invoice.extraction_mode,
         )
     
     return stored_invoice
 
 @router.get("/{invoice_id}", response_model=InvoiceStoredResponse)
-async def get_invoice(invoice_id: str | None):
+async def get_invoice(invoice_id: str):
     invoice = get_invoice_result(invoice_id)
 
     if invoice is None:
